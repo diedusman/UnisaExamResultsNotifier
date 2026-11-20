@@ -57,9 +57,29 @@ info "Creating LXC container '$CONTAINER_NAME' (Ubuntu $UBUNTU_RELEASE)..."
 lxc-create -n "$CONTAINER_NAME" -t download -- \
     --dist ubuntu --release "$UBUNTU_RELEASE" --arch amd64
 
+# ── Patch container config for Proxmox compatibility ─────────────────────────
+# Proxmox unprivileged containers need these to start and to run Chromium
+info "Configuring container..."
+CONFIG_FILE="/var/lib/lxc/$CONTAINER_NAME/config"
+cat >> "$CONFIG_FILE" <<EOF
+
+# Proxmox / Playwright compatibility
+lxc.apparmor.profile = unconfined
+lxc.cap.drop =
+lxc.cgroup2.devices.allow = a
+EOF
+
 info "Starting container..."
 lxc-start -n "$CONTAINER_NAME"
-sleep 5
+sleep 10
+
+# Wait for container to be fully running
+for i in $(seq 1 15); do
+    STATE=$(lxc-info -n "$CONTAINER_NAME" -sH 2>/dev/null)
+    [ "$STATE" = "RUNNING" ] && break
+    sleep 2
+done
+[ "$(lxc-info -n "$CONTAINER_NAME" -sH 2>/dev/null)" = "RUNNING" ] || error "Container failed to reach RUNNING state"
 
 # ── Helper: run command inside container ─────────────────────────────────────
 run() {
