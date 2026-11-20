@@ -25,8 +25,8 @@ Polls the UNISA results API every 5 minutes and sends a Telegram notification th
 
 1. Clone the repo:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/UNISA_Results_Checker.git
-   cd UNISA_Results_Checker
+   git clone https://github.com/diedusman/UnisaExamResultsNotifier.git
+   cd UnisaExamResultsNotifier
    ```
 
 2. Copy `.env.example` to `.env` and fill in your details:
@@ -72,8 +72,8 @@ The checker runs in the background and restarts automatically if it crashes. Res
 
 1. Clone the repo:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/UNISA_Results_Checker.git
-   cd UNISA_Results_Checker
+   git clone https://github.com/diedusman/UnisaExamResultsNotifier.git
+   cd UnisaExamResultsNotifier
    ```
 
 2. Install dependencies:
@@ -119,7 +119,7 @@ Deploys the checker inside a lightweight LXC container that runs as a `systemd` 
 1. Clone the repo on your Linux host:
    ```bash
    git clone https://github.com/diedusman/UnisaExamResultsNotifier.git
-   cd UNISA_Results_Checker
+   cd UnisaExamResultsNotifier
    ```
 
 2. Edit `deploy_lxc.sh` and set your GitHub repo URL at the top:

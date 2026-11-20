@@ -10,7 +10,7 @@ set -e
 # ── Config ────────────────────────────────────────────────────────────────────
 CONTAINER_NAME="unisa-checker"
 UBUNTU_RELEASE="noble"       # 24.04 — change to "jammy" for 22.04
-GITHUB_REPO="https://github.com/YOUR_USERNAME/UNISA_Results_Checker.git"
+GITHUB_REPO="https://github.com/diedusman/UnisaExamResultsNotifier.git"
 APP_DIR="/opt/unisa-checker"
 SERVICE_NAME="unisa-checker"
 # ─────────────────────────────────────────────────────────────────────────────
