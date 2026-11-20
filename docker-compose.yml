@@ -1,0 +1,15 @@
+services:
+  unisa-checker:
+    build: .
+    environment:
+      - UNISA_USERNAME=${UNISA_USERNAME}
+      - UNISA_PASSWORD=${UNISA_PASSWORD}
+      - STUDENT_NUMBER=${STUDENT_NUMBER}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - ACADEMIC_YEAR=${ACADEMIC_YEAR:-2026}
+      - ACADEMIC_PERIOD=${ACADEMIC_PERIOD:-10}
+      - CHECK_INTERVAL=${CHECK_INTERVAL:-300}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
