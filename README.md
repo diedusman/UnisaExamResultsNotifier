@@ -39,9 +39,13 @@ Polls the UNISA results API every 5 minutes and sends a Telegram notification th
    STUDENT_NUMBER=your_student_number
    TELEGRAM_BOT_TOKEN=your_bot_token
    TELEGRAM_CHAT_ID=your_chat_id
+   CHECK_INTERVAL=300
+   ```
+
+   `ACADEMIC_YEAR` and `ACADEMIC_PERIOD` are optional — the checker reads them automatically from the UNISA results page. Set them only as a fallback if auto-detection fails:
+   ```
    ACADEMIC_YEAR=2026
    ACADEMIC_PERIOD=10
-   CHECK_INTERVAL=300
    ```
 
 3. Build and run:
@@ -157,6 +161,7 @@ pct stop 200 && pct destroy 200
 
 ## Notes
 
-- Change `ACADEMIC_YEAR` and `ACADEMIC_PERIOD` in `.env` for future semesters
+- `ACADEMIC_YEAR` and `ACADEMIC_PERIOD` are read automatically from the UNISA results page on each login — no need to update them each semester
+- Set them in `.env` only as a fallback if auto-detection fails
 - The checker runs indefinitely — stop it manually once all your results are out
 - Never share your `.env` file or commit it to git — it is listed in `.gitignore`
