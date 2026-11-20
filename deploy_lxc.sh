@@ -194,6 +194,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=$APP_DIR
+Environment=PYTHONUNBUFFERED=1
 ExecStart=$APP_DIR/venv/bin/python $APP_DIR/checker.py
 Restart=on-failure
 RestartSec=30
