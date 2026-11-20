@@ -116,24 +116,12 @@ Deploys the checker inside a lightweight LXC container that runs as a `systemd` 
 
 ### Steps
 
-1. Clone the repo on your Linux host:
+1. In the Proxmox shell, run:
    ```bash
-   git clone https://github.com/diedusman/UnisaExamResultsNotifier.git
-   cd UnisaExamResultsNotifier
+   bash -c "$(curl -fsSL https://raw.githubusercontent.com/diedusman/UnisaExamResultsNotifier/main/deploy_lxc.sh)"
    ```
 
-2. Edit `deploy_lxc.sh` and set your GitHub repo URL at the top:
-   ```bash
-   GITHUB_REPO="https://github.com/diedusman/UnisaExamResultsNotifier.git"
-   ```
-
-3. Make it executable and run it:
-   ```bash
-   chmod +x deploy_lxc.sh
-   sudo ./deploy_lxc.sh
-   ```
-
-4. The script will prompt you for your credentials, create the container, install everything, and start the service automatically.
+2. The script will prompt you for your credentials, create the container, install everything, and start the service automatically.
 
 ### Useful commands after deployment
 ```bash
