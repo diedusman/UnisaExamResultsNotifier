@@ -2,6 +2,7 @@ services:
   unisa-checker:
     build: .
     environment:
+      - PYTHONUNBUFFERED=1
       - UNISA_USERNAME=${UNISA_USERNAME}
       - UNISA_PASSWORD=${UNISA_PASSWORD}
       - STUDENT_NUMBER=${STUDENT_NUMBER}

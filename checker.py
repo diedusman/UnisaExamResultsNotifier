@@ -12,16 +12,18 @@ load_dotenv()
 USERNAME        = os.environ["UNISA_USERNAME"]
 PASSWORD        = os.environ["UNISA_PASSWORD"]
 STUDENT_NUMBER  = os.environ["STUDENT_NUMBER"]
-ACADEMIC_YEAR   = os.environ.get("ACADEMIC_YEAR",      "2026")
-ACADEMIC_PERIOD = os.environ.get("ACADEMIC_PERIOD",    "10")
 CHECK_INTERVAL  = int(os.environ.get("CHECK_INTERVAL", "300"))
 
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID   = os.environ["TELEGRAM_CHAT_ID"]
 
 LOGIN_URL   = "https://cas.unisa.ac.za/cas/login?service=https%3a%2f%2fmyadmin.unisa.ac.za%2fstudent%2fportal%2fexam-results-app%2f"
-RESULTS_URL = f"https://myadmin.unisa.ac.za/myadmin-exam-services/services/rest/examresultservice/examresults?academicYear={ACADEMIC_YEAR}&academicPeriod={ACADEMIC_PERIOD}&studentNumber={STUDENT_NUMBER}&toolName=exam-results-app"
+SEARCH_URL  = "https://myadmin.unisa.ac.za/student/portal/exam-results-app/search"
 STATE_FILE  = os.path.join(os.environ.get("STATE_DIR", os.path.dirname(os.path.abspath(__file__))), "results_state.json")
+
+# Fallback values used only if the page dropdowns can't be read
+ACADEMIC_YEAR_FALLBACK   = os.environ.get("ACADEMIC_YEAR",   "2026")
+ACADEMIC_PERIOD_FALLBACK = os.environ.get("ACADEMIC_PERIOD", "10")
 
 LOGIN_RETRIES    = 10    # max attempts per login call
 LOGIN_RETRY_WAIT = 5   # seconds between login attempts
@@ -88,16 +90,61 @@ async def re_login(page):
 
 
 async def get_auth(playwright):
-    """Launch browser and log in."""
+    """Launch browser and log in, then scrape the current year/period from the search page."""
     print("  Launching internal browser...")
     browser = await playwright.chromium.launch(headless=True)
     context = await browser.new_context()
     page    = await context.new_page()
     cookies = await re_login(page)
-    return cookies, page
+    year, period = await scrape_period(page)
+    return cookies, page, year, period
 
 
-def check_results(cookies):
+async def scrape_period(page):
+    """
+    Navigate to the search page and read the currently selected year and period
+    from the dropdowns. Falls back to env/default values if scraping fails.
+    """
+    try:
+        print("  Reading current academic period from search page...")
+        await page.goto(SEARCH_URL)
+        await page.wait_for_load_state("networkidle", timeout=20000)
+
+        # Strip Angular's "index: value" formatting (e.g. "3: 10" -> "10")
+        def strip_ng(val):
+            if val and ': ' in val:
+                return val.split(': ', 1)[1].strip()
+            return val
+
+        year = await page.evaluate("""() => {
+            const el = document.querySelector('input#examYear');
+            return el ? el.value : null;
+        }""")
+
+        period = strip_ng(await page.evaluate("""() => {
+            const el = document.querySelector('select#examinationperiod');
+            return el ? el.value : null;
+        }"""))
+
+        if year and period:
+            print(f"  Detected period: year={year}, period={period}")
+            return year, period
+
+        print(f"  Could not detect period from page (year={year}, period={period}) — using fallback values")
+
+    except Exception as e:
+        print(f"  Period scrape failed: {e} — using fallback values")
+
+    print(f"  Fallback: year={ACADEMIC_YEAR_FALLBACK}, period={ACADEMIC_PERIOD_FALLBACK}")
+    return ACADEMIC_YEAR_FALLBACK, ACADEMIC_PERIOD_FALLBACK
+
+
+def check_results(cookies, year, period):
+    url = (
+        f"https://myadmin.unisa.ac.za/myadmin-exam-services/services/rest/"
+        f"examresultservice/examresults?academicYear={year}&academicPeriod={period}"
+        f"&studentNumber={STUDENT_NUMBER}&toolName=exam-results-app"
+    )
     headers = {
         "Accept":         "application/json, text/plain, */*",
         "Cookie":         cookies,
@@ -106,7 +153,7 @@ def check_results(cookies):
         "Sec-Fetch-Mode": "cors",
         "Sec-Fetch-Site": "same-origin",
     }
-    r = requests.get(RESULTS_URL, headers=headers, timeout=15)
+    r = requests.get(url, headers=headers, timeout=15)
     if r.status_code in (401, 403):
         print(f"  API returned {r.status_code}")
         return None, True
@@ -142,8 +189,9 @@ async def main():
     async with async_playwright() as playwright:
         print("=== UNISA Results Checker ===\n")
 
-        cookies, page = await get_auth(playwright)
+        cookies, page, year, period = await get_auth(playwright)
         print("Login successful.\n")
+        print(f"  Academic year: {year} | period: {period}\n")
 
         previous = load_state()
         print(f"  Loaded previous state: {previous}\n")
@@ -152,11 +200,12 @@ async def main():
 
         while True:
             try:
-                data, needs_reauth = check_results(cookies)
+                data, needs_reauth = check_results(cookies, year, period)
 
                 if needs_reauth:
                     print(f"[{time.strftime('%H:%M:%S')}] Session expired — re-logging in...")
                     cookies = await re_login(page)
+                    year, period = await scrape_period(page)
                     consecutive_errors = 0
                     continue
 
@@ -184,6 +233,7 @@ async def main():
                 if consecutive_errors >= 3:
                     print("3 consecutive errors — re-logging in...")
                     cookies = await re_login(page)
+                    year, period = await scrape_period(page)
                     consecutive_errors = 0
 
             await asyncio.sleep(CHECK_INTERVAL)
