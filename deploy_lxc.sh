@@ -92,7 +92,7 @@ cat >> "$CONFIG_FILE" <<EOF
 
 # Resources
 lxc.cgroup2.memory.max = $((CT_RAM * 1024 * 1024))
-lxc.cgroup2.cpu.shares = $((CT_CPUS * 1024))
+lxc.cgroup2.cpu.weight = $((1 + (CT_CPUS - 1) * 99))
 
 # Network — bridge: $BRIDGE
 lxc.net.0.type = veth
@@ -114,7 +114,6 @@ cat >> "$CONFIG_FILE" <<EOF
 # Proxmox / Playwright compatibility
 lxc.apparmor.profile = unconfined
 lxc.cap.drop =
-lxc.cgroup2.devices.allow = a
 EOF
 
 # ── Start container ───────────────────────────────────────────────────────────
