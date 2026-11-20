@@ -103,16 +103,12 @@ nohup python checker.py &
 
 ---
 
-## Option 3: LXC Container (Linux hosts — Proxmox, Ubuntu, Debian)
+## Option 3: LXC Container (Proxmox VE)
 
-Deploys the checker inside a lightweight LXC container that runs as a `systemd` service, starting automatically on boot.
+Deploys the checker as a proper Proxmox LXC container — visible in the web UI with CPU/RAM graphs, starts automatically on boot, and managed with `pct` like any other container.
 
 ### Prerequisites
-- A Linux host (bare metal or VM) running Ubuntu or Debian
-- `lxc-utils` installed:
-  ```bash
-  sudo apt install lxc lxc-utils
-  ```
+- Proxmox VE host (no git or extra packages needed)
 
 ### Steps
 
@@ -121,21 +117,32 @@ Deploys the checker inside a lightweight LXC container that runs as a `systemd` 
    bash -c "$(curl -fsSL https://raw.githubusercontent.com/diedusman/UnisaExamResultsNotifier/main/deploy_lxc.sh)"
    ```
 
-2. The script will prompt you for your credentials, create the container, install everything, and start the service automatically.
+2. The script will prompt you for:
+   - **VMID** — auto-suggests the next free ID
+   - **Network bridge** — lists available bridges (typically `vmbr0`)
+   - **IP** — DHCP or static (with gateway and DNS if static)
+   - **Storage** — lists available storages for template and rootfs
+   - **RAM, disk, CPUs**
+   - **UNISA credentials and Telegram details**
+
+3. It then downloads the Ubuntu 24.04 template if needed, creates the container, installs everything, and starts the service automatically.
 
 ### Useful commands after deployment
 ```bash
-# View live logs
-lxc-attach -n unisa-checker -- journalctl -fu unisa-checker
+# View live logs (replace 200 with your VMID)
+pct exec 200 -- journalctl -fu unisa-checker
 
 # Restart the checker
-lxc-attach -n unisa-checker -- systemctl restart unisa-checker
+pct exec 200 -- systemctl restart unisa-checker
 
 # Open a shell inside the container
-lxc-attach -n unisa-checker
+pct enter 200
+
+# Stop the container
+pct stop 200
 
 # Destroy the container completely
-lxc-stop -n unisa-checker && lxc-destroy -n unisa-checker
+pct stop 200 && pct destroy 200
 ```
 
 ---
