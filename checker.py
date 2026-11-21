@@ -30,17 +30,23 @@ LOGIN_RETRY_WAIT = 5   # seconds between login attempts
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def load_state():
+def load_state(year, period):
     if os.path.exists(STATE_FILE):
         with open(STATE_FILE, "r") as f:
-            return json.load(f)
+            data = json.load(f)
+        return data.get(str(year), {}).get(str(period), {})
     return {}
 
 
-def save_state(marks):
+def save_state(year, period, marks):
+    data = {}
+    if os.path.exists(STATE_FILE):
+        with open(STATE_FILE, "r") as f:
+            data = json.load(f)
+    data.setdefault(str(year), {})[str(period)] = marks
     with open(STATE_FILE, "w") as f:
-        json.dump(marks, f, indent=2)
-    print(f"  State saved to {STATE_FILE}")
+        json.dump(data, f, indent=2)
+    print(f"  State saved to {STATE_FILE} [{year}/{period}]")
 
 
 async def _do_login(page):
@@ -193,8 +199,8 @@ async def main():
         print("Login successful.\n")
         print(f"  Academic year: {year} | period: {period}\n")
 
-        previous = load_state()
-        print(f"  Loaded previous state: {previous}\n")
+        previous = load_state(year, period)
+        print(f"  Loaded previous state [{year}/{period}]: {previous}\n")
 
         consecutive_errors = 0
 
@@ -205,7 +211,14 @@ async def main():
                 if needs_reauth:
                     print(f"[{time.strftime('%H:%M:%S')}] Session expired — re-logging in...")
                     cookies = await re_login(page)
-                    year, period = await scrape_period(page)
+                    new_year, new_period = await scrape_period(page)
+                    if (new_year, new_period) != (year, period):
+                        print(f"  Period changed: {year}/{period} → {new_year}/{new_period}")
+                        year, period = new_year, new_period
+                        previous = load_state(year, period)
+                        print(f"  Loaded state [{year}/{period}]: {previous}")
+                    else:
+                        year, period = new_year, new_period
                     consecutive_errors = 0
                     continue
 
@@ -223,7 +236,7 @@ async def main():
                     print(f">>> NEW RESULTS: {new_results}")
                     notify(new_results)
                     previous.update(new_results)
-                    save_state(previous)
+                    save_state(year, period, previous)
 
                 consecutive_errors = 0
 
@@ -233,7 +246,13 @@ async def main():
                 if consecutive_errors >= 3:
                     print("3 consecutive errors — re-logging in...")
                     cookies = await re_login(page)
-                    year, period = await scrape_period(page)
+                    new_year, new_period = await scrape_period(page)
+                    if (new_year, new_period) != (year, period):
+                        print(f"  Period changed: {year}/{period} → {new_year}/{new_period}")
+                        year, period = new_year, new_period
+                        previous = load_state(year, period)
+                    else:
+                        year, period = new_year, new_period
                     consecutive_errors = 0
 
             await asyncio.sleep(CHECK_INTERVAL)
