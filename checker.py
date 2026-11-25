@@ -150,10 +150,13 @@ def check_results(cookies, year, period):
         f"https://myadmin.unisa.ac.za/myadmin-exam-services/services/rest/"
         f"examresultservice/examresults?academicYear={year}&academicPeriod={period}"
         f"&studentNumber={STUDENT_NUMBER}&toolName=exam-results-app"
+        f"&_={time.time_ns()}"
     )
     headers = {
         "Accept":         "application/json, text/plain, */*",
+        "Cache-Control":  "no-cache, no-store, max-age=0",
         "Cookie":         cookies,
+        "Pragma":         "no-cache",
         "Referer":        "https://myadmin.unisa.ac.za/student/portal/exam-results-app/search",
         "Sec-Fetch-Dest": "empty",
         "Sec-Fetch-Mode": "cors",
