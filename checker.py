@@ -167,6 +167,13 @@ def check_results(cookies, year, period):
         print(f"  API returned {r.status_code}")
         return None, True
     r.raise_for_status()
+    cache_headers = {
+        name: r.headers[name]
+        for name in ("Age", "Cache-Control", "Date", "ETag", "Last-Modified", "Via", "X-Cache")
+        if name in r.headers
+    }
+    if cache_headers:
+        print(f"  Response headers: {cache_headers}")
     print(f"  Status: {r.status_code} | Response: {r.text[:300]}")
     if r.text.strip().startswith("<"):
         print("  Got HTML response instead of JSON — session invalid.")
@@ -232,13 +239,21 @@ async def main():
                 new_results = {
                     course: mark
                     for course, mark in current.items()
-                    if mark != "***" and previous.get(course, "***") == "***"
+                    if mark != "***" and mark != previous.get(course)
                 }
 
                 if new_results:
                     print(f">>> NEW RESULTS: {new_results}")
                     notify(new_results)
-                    previous.update(new_results)
+
+                updated_state = previous.copy()
+                updated_state.update({
+                    course: mark
+                    for course, mark in current.items()
+                    if mark != "***"
+                })
+                if updated_state != previous:
+                    previous = updated_state
                     save_state(year, period, previous)
 
                 consecutive_errors = 0
